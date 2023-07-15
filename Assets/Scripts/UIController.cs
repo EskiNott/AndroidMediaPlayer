@@ -5,9 +5,9 @@ using UnityEngine.Video;
 using UnityEngine.UI;
 using Unity.VisualScripting;
 using System;
+using UnityEngine.EventSystems;
 
-public class UIController : EskiNottToolKit.MonoSingleton<UIController>
-{
+public class UIController : EskiNottToolKit.MonoSingleton<UIController> {
     public GameObject MainMenu;
     public GameObject Player;
     public TMPro.TextMeshProUGUI PlayPauseText;
@@ -21,6 +21,7 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
     private VideoSituation videoSitu;
     float[] speed = { 0.5f, 1.0f, 1.5f, 1.75f, 2.0f, 2.5f };
     int speedIndex = 1;
+    private bool isDraggingProgress = false;
 
     private enum VideoSituation
     {
@@ -38,6 +39,29 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
     {
         ProgressUpdate();
         TimeUpdate();
+        if (Input.GetMouseButtonDown(0))
+        {
+            // 检查鼠标点击的位置是否在进度条上
+            Vector2 mousePosition = Input.mousePosition;
+            RectTransform progressBarRect = NowProgress.rectTransform;
+
+            if (RectTransformUtility.RectangleContainsScreenPoint(progressBarRect, mousePosition))
+            {
+                // 点击进度条时开始拖动
+                isDraggingProgress = true;
+            }
+        }
+        else if (Input.GetMouseButtonUp(0))
+        {
+            // 停止拖动
+            isDraggingProgress = false;
+        }
+
+        // 当拖动进度条时才更新进度
+        if (isDraggingProgress)
+        {
+            HandleMouseClick();
+        }
     }
 
     public void ScaleChangeButtonOnClick()
@@ -166,5 +190,21 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
         p.Pause();
         PlayPauseText.text = "Play";
         videoSitu = VideoSituation.paused;
+    }
+
+    private void HandleMouseClick()
+    {
+        Vector2 localMousePosition;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(NowProgress.rectTransform, Input.mousePosition, null, out localMousePosition);
+
+        // 获取点击位置相对于进度条的比例
+        float normalizedPosition = Mathf.InverseLerp(NowProgress.rectTransform.rect.xMin, NowProgress.rectTransform.rect.xMax, localMousePosition.x);
+
+        // 计算点击位置对应的视频播放时间
+        VideoPlayer p = FileManager.Instance.videoPlayer;
+        double targetTime = p.length * normalizedPosition;
+
+        // 调整视频播放进度到目标时间
+        p.time = targetTime;
     }
 }
