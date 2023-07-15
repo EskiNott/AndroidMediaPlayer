@@ -26,7 +26,7 @@ public class FileManager : EskiNottToolKit.MonoSingleton<FileManager>
                 UIController.Instance.PlayerPlay();
                 UIController.Instance.VideoPlay();
                 UIController.Instance.fileChoose = true;
-                //UIController.Instance.setTitle(path);
+                UIController.Instance.setTitle(path);
                 // Play the selected video
                 //Handheld.PlayFullScreenMovie("file://" + path);
             }
