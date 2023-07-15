@@ -6,6 +6,8 @@ using UnityEngine.UI;
 using Unity.VisualScripting;
 using System;
 using UnityEngine.EventSystems;
+using UnityEngine.Networking;
+using TagLib;
 
 public class UIController : EskiNottToolKit.MonoSingleton<UIController> {
     public GameObject MainMenu;
@@ -18,6 +20,9 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController> {
     public TMPro.TextMeshProUGUI SpeedText;
     public TMPro.TextMeshProUGUI TimeText;
     public Image NowProgress;
+    public AudioSource audioSource;
+    public GameObject AudioController;
+    public TMPro.TextMeshProUGUI SongTitle;
     private VideoSituation videoSitu;
     float[] speed = { 0.5f, 1.0f, 1.5f, 1.75f, 2.0f, 2.5f };
     int speedIndex = 1;
@@ -206,5 +211,53 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController> {
 
         // 调整视频播放进度到目标时间
         p.time = targetTime;
+    }
+    
+    public void SetSongTitleAndAblum(string path)
+   {
+       using (var file = TagLib.File.Create(path))
+       {
+           // 获取歌曲名
+           string title = file.Tag.Title;
+           Debug.Log("Song Title: " + title);
+           SongTitle.text = title;
+           // 获取专辑图片
+           /*IPicture[] pictures = file.Tag.Pictures;
+           if (pictures.Length > 0)
+           {
+               byte[] pictureData = pictures[0].Data.Data;
+               Texture2D albumArt = new Texture2D(2, 2);
+               albumArt.LoadImage(pictureData);
+               // 在此处使用专辑图片（Texture2D）
+           }*/
+       }
+   }
+  
+    public void InitialAudioPlay(string path)
+    {
+        MainMenu.SetActive(false);
+
+        UnityWebRequest audioRequest = UnityWebRequestMultimedia.GetAudioClip("file://" + path, AudioType.MPEG);
+
+        // 手动发送Web请求
+        audioRequest.SendWebRequest().completed += (operation) =>
+        {
+            if (!audioRequest.isNetworkError && !audioRequest.isHttpError)
+            {
+                // 获取加载的音频文件
+                AudioClip audioClip = DownloadHandlerAudioClip.GetContent(audioRequest);
+
+                // 创建一个AudioSource组件并播放音频
+                audioSource = gameObject.AddComponent<AudioSource>();
+                audioSource.clip = audioClip;
+                audioSource.Play();
+            }
+            else
+            {
+                Debug.LogError("Failed to load audio: " + audioRequest.error);
+            }
+
+            audioRequest.Dispose();
+        };
     }
 }
