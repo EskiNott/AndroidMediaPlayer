@@ -17,21 +17,30 @@ public class FileManager : EskiNottToolKit.MonoSingleton<FileManager>
 
     private void PickVideo()
     {
-        NativeGallery.Permission permission = NativeGallery.GetVideoFromGallery((path) =>
+        NativeGallery.Permission permission = NativeGallery.GetMixedMediaFromGallery((path) =>
         {
-            Debug.Log("Video path: " + path);
+            Debug.Log("Media path: " + path);
             if (path != null)
             {
-                videoPlayer.url = path;
-                UIController.Instance.PlayerPlay();
-                UIController.Instance.VideoPlay();
-                UIController.Instance.fileChoose = true;
-                UIController.Instance.setTitle(path);
-                // Play the selected video
-                //Handheld.PlayFullScreenMovie("file://" + path);
+                switch (NativeGallery.GetMediaTypeOfFile(path))
+                {
+                    case NativeGallery.MediaType.Video:
+                        videoPlayer.url = path;
+                        UIController.Instance.PlayerPlay();
+                        UIController.Instance.VideoPlay();
+                        UIController.Instance.fileChoose = true;
+                        UIController.Instance.setTitle(path);
+                        // Play the selected video
+                        //Handheld.PlayFullScreenMovie("file://" + path);
+                        break;
+                    case NativeGallery.MediaType.Audio:
+                        //UIController.Instance.SetSongTitleAndAblum(path);
+                        UIController.Instance.InitialAudioPlay(path);
+                        break;
+                    default: Debug.Log("Probably picked something else"); break;
+                }
             }
-        }, "Select a video");
-
+        }, NativeGallery.MediaType.Audio | NativeGallery.MediaType.Video, "Select Media");
         Debug.Log("Permission result: " + permission);
     }
 
