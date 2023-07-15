@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.Video;
 using UnityEngine.UI;
 using Unity.VisualScripting;
+using System;
 
 public class UIController : EskiNottToolKit.MonoSingleton<UIController>
 {
@@ -15,6 +16,7 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
     public GameObject PlayerController;
     public TMPro.TextMeshProUGUI DebugText;
     public TMPro.TextMeshProUGUI SpeedText;
+    public TMPro.TextMeshProUGUI TimeText;
     public Image NowProgress;
     private VideoSituation videoSitu;
     float[] speed = { 0.5f, 1.0f, 1.5f, 1.75f, 2.0f, 2.5f };
@@ -35,6 +37,7 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
     private void Update()
     {
         ProgressUpdate();
+        TimeUpdate();
     }
 
     public void ScaleChangeButtonOnClick()
@@ -49,6 +52,23 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
         speedIndex = (speedIndex + 1) % speed.Length;
         SpeedText.text = "Multiple:" + speed[speedIndex] + "x";
         p.playbackSpeed = speed[speedIndex];
+    }
+
+    private void TimeUpdate()
+    {
+        VideoPlayer p = FileManager.Instance.videoPlayer;
+
+        TimeSpan t1 = TimeSpan.FromSeconds(p.clockTime);
+        TimeSpan t2 = TimeSpan.FromSeconds(p.length);
+        string time1 = string.Format("{0:D2}:{1:D2}:{2:D2}",
+                        t1.Hours,
+                        t1.Minutes,
+                        t1.Seconds);
+        string time2 = string.Format("{0:D2}:{1:D2}:{2:D2}",
+                t2.Hours,
+                t2.Minutes,
+                t2.Seconds);
+        TimeText.text = time1 + " | " + time2;
     }
 
     private void ProgressUpdate()
