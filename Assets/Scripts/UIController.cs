@@ -2,6 +2,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Video;
+using UnityEngine.UI;
+using Unity.VisualScripting;
 
 public class UIController : EskiNottToolKit.MonoSingleton<UIController>
 {
@@ -12,14 +14,41 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
     public bool fileChoose = false;
     public GameObject PlayerController;
     public TMPro.TextMeshProUGUI DebugText;
-    public Transform pos2;
-    public Transform pos1;
-    public Transform NowProgress;
+    public TMPro.TextMeshProUGUI SpeedText;
+    public Image NowProgress;
+    private VideoSituation videoSitu;
+    float[] speed = { 0.5f, 1.0f, 1.5f, 1.75f, 2.0f, 2.5f };
+    int speedIndex = 1;
 
-    private void LateUpdate()
+    private enum VideoSituation
     {
-        _videoCheck();
+        playing,
+        paused,
+        end
+    }
+
+    private void Start()
+    {
+        _endCheck();
+    }
+
+    private void Update()
+    {
         ProgressUpdate();
+    }
+
+    public void ScaleChangeButtonOnClick()
+    {
+        VideoPlayer p = FileManager.Instance.videoPlayer;
+        p.aspectRatio = (VideoAspectRatio)(((int)p.aspectRatio + 1) % (int)VideoAspectRatio.Stretch);
+    }
+
+    public void SetPlaySpeedButtonOnClick()
+    {
+        VideoPlayer p = FileManager.Instance.videoPlayer;
+        speedIndex = (speedIndex + 1) % speed.Length;
+        SpeedText.text = "Multiple:" + speed[speedIndex] + "x";
+        p.playbackSpeed = speed[speedIndex];
     }
 
     private void ProgressUpdate()
@@ -27,7 +56,7 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
         VideoPlayer p = FileManager.Instance.videoPlayer;
         if (p.frameCount <= 0) return;
         float realProgress = p.frame * 1.0f / (long)p.frameCount;
-        NowProgress.position = new Vector3(pos1.position.x + realProgress * (pos2.position.x - pos1.position.x), pos2.position.y, pos2.position.z);
+        NowProgress.fillAmount = realProgress;
     }
 
     public void PlayerPlay()
@@ -44,6 +73,14 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
         fileChoose = false;
     }
 
+    public void VideoReplay()
+    {
+        VideoPlayer p = FileManager.Instance.videoPlayer;
+        p.frame = -1;
+        PlayerPlay();
+        VideoPlay();
+    }
+
     public void sentLog(string logs)
     {
         DebugText.text = DebugText.text + "\n" + logs;
@@ -55,21 +92,21 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
         {
             VideoTitle.text = paths[paths.Length - 1];
         }
-        
     }
 
-    private void _videoCheck()
+    private void _endCheck()
     {
         VideoPlayer p = FileManager.Instance.videoPlayer;
-        sentLog(p.frame.ToString());
-        sentLog(p.isPlaying.ToString());
+        p.loopPointReached += EndReach;
+
         //½áÊø
-        if(p.frame > (long)p.frameCount - 3 
-            && fileChoose == true
-            && p.frame != -1
-            && p.frameCount != 0)
+        void EndReach(VideoPlayer vp)
         {
-            PlayerStop();
+            if(fileChoose == true)
+            {
+                videoSitu = VideoSituation.end;
+                PlayPauseText.text = "Replay";
+            }
         }
     }
 
@@ -80,22 +117,26 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
 
     public void PlayPauseButtonOnClick()
     {
-        VideoPlayer p = FileManager.Instance.videoPlayer;
-        if (p.isPlaying)
+        switch (videoSitu)
         {
-            VideoPause();
-        }
-        else if (p.isPaused)
-        {
-            VideoPlay();
+            case VideoSituation.playing:
+                VideoPause();
+                break;
+            case VideoSituation.paused:
+                VideoPlay();
+                break;
+            case VideoSituation.end:
+                VideoPlay();
+                break;
         }
     }
 
     public void VideoPlay()
     {
         VideoPlayer p = FileManager.Instance.videoPlayer;
-        p.Play();
         PlayPauseText.text = "Pause";
+        videoSitu = VideoSituation.playing;
+        p.Play();
     }
 
     public void VideoPause()
@@ -103,5 +144,6 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
         VideoPlayer p = FileManager.Instance.videoPlayer;
         p.Pause();
         PlayPauseText.text = "Play";
+        videoSitu = VideoSituation.paused;
     }
 }
