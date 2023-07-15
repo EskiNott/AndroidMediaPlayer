@@ -91,6 +91,7 @@ public class UIController : EskiNottToolKit.MonoSingleton<UIController>
         MainMenu.SetActive(true);
         PlayerController.SetActive(false);
         fileChoose = false;
+        VideoPause();
     }
 
     public void VideoReplay()
