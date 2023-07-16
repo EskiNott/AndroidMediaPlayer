@@ -24,7 +24,7 @@ namespace EskiNottToolKit
             }
             else
             {
-                Debug.LogError("Get a second instance of this class??" + this.GetType());
+                UnityEngine.Debug.LogError("Get a second instance of this class??" + this.GetType());
             }
         }
     }

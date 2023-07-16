@@ -3,68 +3,77 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.Video;
-
 public class FileManager : EskiNottToolKit.MonoSingleton<FileManager>
 {
     [SerializeField] public VideoPlayer videoPlayer;
+    [SerializeField] public AudioSource audioSource;
+    public bool isAudio = false;
 
 
     public void onLoadButtonClick()
     {
-        PickVideo();
+        PickMedia();
     }
 
-    private void PickVideo()
+    private void PickMedia()
     {
         NativeGallery.Permission permission = NativeGallery.GetMixedMediaFromGallery((path) =>
         {
-            Debug.Log("Media path: " + path);
+            UnityEngine.Debug.Log("Media path: " + path);
             if (path != null)
             {
                 switch (NativeGallery.GetMediaTypeOfFile(path))
                 {
                     case NativeGallery.MediaType.Video:
+                        isAudio = false;
                         videoPlayer.url = path;
                         UIController.Instance.PlayerPlay();
-                        UIController.Instance.VideoPlay();
+                        UIController.Instance.MediaPlay();
                         UIController.Instance.fileChoose = true;
                         UIController.Instance.setTitle(path);
                         // Play the selected video
                         //Handheld.PlayFullScreenMovie("file://" + path);
                         break;
                     case NativeGallery.MediaType.Audio:
+                        isAudio = true;
                         //UIController.Instance.SetSongTitleAndAblum(path);
-                        UIController.Instance.InitialAudioPlay(path);
+                        InitialAudioPlay(path);
                         break;
-                    default: Debug.Log("Probably picked something else"); break;
+                    default: UnityEngine.Debug.Log("Probably picked something else"); break;
                 }
             }
         }, NativeGallery.MediaType.Audio | NativeGallery.MediaType.Video, "Select Media");
-        Debug.Log("Permission result: " + permission);
+        UnityEngine.Debug.Log("Permission result: " + permission);
     }
 
-    // Example code doesn't use this function but it is here for reference
-    private void PickImageOrVideo()
+    public void InitialAudioPlay(string path)
     {
-        if (NativeGallery.CanSelectMultipleMediaTypesFromGallery())
-        {
-            NativeGallery.Permission permission = NativeGallery.GetMixedMediaFromGallery((path) =>
-            {
-                Debug.Log("Media path: " + path);
-                if (path != null)
-                {
-                    // Determine if user has picked an image, video or neither of these
-                    switch (NativeGallery.GetMediaTypeOfFile(path))
-                    {
-                        case NativeGallery.MediaType.Image: Debug.Log("Picked image"); break;
-                        case NativeGallery.MediaType.Video: Debug.Log("Picked video"); break;
-                        default: Debug.Log("Probably picked something else"); break;
-                    }
-                }
-            }, NativeGallery.MediaType.Image | NativeGallery.MediaType.Video, "Select an image or video");
 
-            Debug.Log("Permission result: " + permission);
-        }
+        UnityWebRequest audioRequest = UnityWebRequestMultimedia.GetAudioClip("file://" + path, AudioType.MPEG);
+
+        // 手动发送Web请求
+        audioRequest.SendWebRequest().completed += (operation) =>
+        {
+            if (!audioRequest.isNetworkError && !audioRequest.isHttpError)
+            {
+                // 获取加载的音频文件
+                AudioClip audioClip = DownloadHandlerAudioClip.GetContent(audioRequest);
+
+                // 创建一个AudioSource组件并播放音频
+                audioSource.clip = audioClip;
+                UIController.Instance.PlayerPlay();
+                UIController.Instance.MediaPlay();
+                UIController.Instance.fileChoose = true;
+                UIController.Instance.setTitle(path);
+            }
+            else
+            {
+                UnityEngine.Debug.LogError("Failed to load audio: " + audioRequest.error);
+            }
+
+            audioRequest.Dispose();
+        };
     }
 }
